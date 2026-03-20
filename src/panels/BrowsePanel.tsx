@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   KalturaMediaEntry,
-  KalturaMediaType,
   KalturaFlavorAsset,
   KalturaCaptionAsset,
   KalturaCaptionType,
@@ -40,7 +39,12 @@ import { getUserMessage } from "../utils/errors";
 
 /** Check if a flavor asset is ready and usable for import */
 function isFlavorReady(f: KalturaFlavorAsset): boolean {
-  return f.status === 2 && !(f.width === 0 && f.height === 0 && f.size === 0);
+  if (f.status !== 2) return false;
+  // Accept flavors that have a nonzero size (covers audio with 0 width/height)
+  if (f.size > 0) return true;
+  // Accept flavors with known dimensions (video/image transcodes)
+  if (f.width > 0 || f.height > 0) return true;
+  return false;
 }
 
 /** Check if an entry is under content hold (governance) */
@@ -357,8 +361,8 @@ export const BrowsePanel: React.FC<BrowsePanelProps> = ({
     }
     const readyFlavors = selectedEntry.flavors.filter(isFlavorReady);
     if (readyFlavors.length === 0) {
-      // Image/document entries have no flavors — use direct entry download
-      if (onImportDirectEntry && Number(selectedEntry.entry.mediaType) === KalturaMediaType.IMAGE) {
+      // No transcoded flavors — fall back to direct source download
+      if (onImportDirectEntry) {
         onImportDirectEntry(selectedEntry.entry);
         return;
       }
@@ -389,11 +393,6 @@ export const BrowsePanel: React.FC<BrowsePanelProps> = ({
   const handleQuickImport = useCallback(
     (entry: KalturaMediaEntry) => {
       if (isContentHeld(entry)) return;
-      // Image entries: direct download (no flavors)
-      if (onImportDirectEntry && Number(entry.mediaType) === KalturaMediaType.IMAGE) {
-        onImportDirectEntry(entry);
-        return;
-      }
       mediaService
         .getEntryDetails(entry.id)
         .then((details) => {
@@ -401,6 +400,7 @@ export const BrowsePanel: React.FC<BrowsePanelProps> = ({
           const webFlavor = ready.find((f) => f.isWeb);
           if (webFlavor) onImportEntry(entry, webFlavor);
           else if (ready.length > 0) onImportEntry(entry, ready[0]);
+          else if (onImportDirectEntry) onImportDirectEntry(entry);
         })
         .catch((err) => {
           log.error("Quick import failed", err);
