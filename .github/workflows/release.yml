@@ -66,11 +66,14 @@ jobs:
           cat > release/RELEASE_NOTES.md <<EOF
           ## How to Install
 
-          1. Download \`kaltura-panel-${VERSION}.ccx\` from the **Assets** section below
+          1. Download the \`.ccx\` file for your Adobe app from the **Assets** section below:
+             - \`kaltura-panel-${VERSION}_premierepro.ccx\` — Premiere Pro
+             - \`kaltura-panel-${VERSION}_aftereffects.ccx\` — After Effects
+             - \`kaltura-panel-${VERSION}_audition.ccx\` — Audition
           2. **Double-click** the \`.ccx\` file to install
           3. Open your Adobe app and go to **Window > UXP Plugins > Kaltura**
 
-          Works with **Premiere Pro**, **After Effects**, and **Audition** (v25.2+).
+          Requires **Premiere Pro**, **After Effects**, or **Audition** v25.6+.
 
           ### Requirements
           - A [Kaltura](https://corp.kaltura.com/) account with API access
