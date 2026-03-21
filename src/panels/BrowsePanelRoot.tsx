@@ -25,7 +25,7 @@ import { createLogger } from "../utils/logger";
 const log = createLogger("BrowsePanelRoot");
 
 export const BrowsePanelRoot: React.FC = () => (
-  <AuthGate>{(ctx) => <BrowseContent {...ctx} />}</AuthGate>
+  <AuthGate panelTitle="Media Browser">{(ctx) => <BrowseContent {...ctx} />}</AuthGate>
 );
 
 const BrowseContent: React.FC<AuthGateContext> = ({ partnerId, userId }) => {

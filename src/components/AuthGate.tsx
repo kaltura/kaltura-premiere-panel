@@ -12,8 +12,10 @@ import { LoginPanel } from "../panels/LoginPanel";
 import { StatusBar } from "./StatusBar";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { client, authService, auditService, hostService } from "../services/singleton";
+import { AUTH_SIGNIN_EVENT } from "../utils/constants";
 
 interface AuthGateProps {
+  panelTitle?: string;
   children: (ctx: AuthGateContext) => React.ReactNode;
 }
 
@@ -25,7 +27,7 @@ export interface AuthGateContext {
   serverUrl: string;
 }
 
-export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
+export const AuthGate: React.FC<AuthGateProps> = ({ panelTitle, children }) => {
   const { authState, login, loginWithSso, cancelSso, isLoading, error, clearError } = useAuth(
     client,
     authService,
@@ -45,11 +47,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     }
   }, [authState.isAuthenticated]);
 
-  // Wrap login to log audit trail only on explicit user action (not session restore)
+  // Wrap login to log audit trail and notify other panels
   const handleLogin = useCallback(
     async (credentials: KalturaLoginCredentials) => {
       await login(credentials);
       auditService.logAction("login", undefined, `User: ${credentials.email}`);
+      document.dispatchEvent(new Event(AUTH_SIGNIN_EVENT));
     },
     [login],
   );
@@ -58,6 +61,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     async (serverUrl: string, partnerId: number) => {
       await loginWithSso(serverUrl, partnerId);
       auditService.logAction("login", undefined, "SSO login");
+      document.dispatchEvent(new Event(AUTH_SIGNIN_EVENT));
     },
     [loginWithSso],
   );
@@ -107,6 +111,22 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   // Authenticated — render panel content
   return (
     <div className="panel-root">
+      {panelTitle && (
+        <div
+          style={{
+            padding: "6px 12px",
+            fontSize: 11,
+            fontWeight: 600,
+            color: "#999",
+            letterSpacing: "0.5px",
+            textTransform: "uppercase" as const,
+            borderBottom: "1px solid #333",
+            flexShrink: 0,
+          }}
+        >
+          {panelTitle}
+        </div>
+      )}
       {children({
         partnerId: authState.partnerId!,
         userId: authState.user?.id,

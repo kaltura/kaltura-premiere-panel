@@ -17,7 +17,9 @@ import {
   hostService,
 } from "../services/singleton";
 
-export const PublishPanelRoot: React.FC = () => <AuthGate>{(_ctx) => <PublishContent />}</AuthGate>;
+export const PublishPanelRoot: React.FC = () => (
+  <AuthGate panelTitle="Publish">{(_ctx) => <PublishContent />}</AuthGate>
+);
 
 const PublishContent: React.FC = () => {
   // In multi-panel mode, "Back to Browse" no longer makes sense since
