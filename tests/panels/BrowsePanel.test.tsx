@@ -592,28 +592,6 @@ describe("BrowsePanel", () => {
 
   // --- Batch delete ---
 
-  it("shows delete button when batchService is provided", async () => {
-    const batchService = {
-      batchDelete: jest.fn().mockResolvedValue({ total: 1, successful: 1 }),
-      batchUpdateMetadata: jest.fn(),
-    };
-    render(<BrowsePanel {...defaultProps} batchService={batchService} />);
-    await waitFor(() => {
-      expect(screen.getByText("Video One")).toBeTruthy();
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByText("Video One"));
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("Edit Metadata")).toBeTruthy();
-    });
-    // Delete button has title="Delete entry"
-    const deleteBtn = document.querySelector('[title="Delete entry"]');
-    expect(deleteBtn).toBeTruthy();
-  });
-
   // --- Edit metadata ---
 
   it("opens metadata editor when Edit Metadata is clicked", async () => {

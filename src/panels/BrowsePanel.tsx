@@ -213,7 +213,7 @@ export const BrowsePanel: React.FC<BrowsePanelProps> = ({
   mediaService,
   metadataService,
   searchService: _searchService,
-  batchService,
+  batchService: _batchService,
   auditService,
   offlineService,
   captionService,
@@ -465,15 +465,6 @@ export const BrowsePanel: React.FC<BrowsePanelProps> = ({
         onBack={handleBackToGrid}
         onImport={handleImportClick}
         onEdit={() => setIsEditing(true)}
-        onDelete={
-          batchService
-            ? async () => {
-                await batchService.batchDelete([selectedEntry.entry.id]);
-                handleBackToGrid();
-                loadEntries(1);
-              }
-            : undefined
-        }
         isImported={isImported(selectedEntry.entry.id)}
         importError={importError}
         showQualityPicker={showQualityPicker}
@@ -765,7 +756,6 @@ interface AssetDetailProps {
   onBack: () => void;
   onImport: () => void;
   onEdit: () => void;
-  onDelete?: () => void;
   isImported: boolean;
   importError: string | null;
   showQualityPicker: boolean;
@@ -787,7 +777,6 @@ const AssetDetail: React.FC<AssetDetailProps> = ({
   onBack,
   onImport,
   onEdit,
-  onDelete,
   isImported,
   importError,
   showQualityPicker,
@@ -903,20 +892,6 @@ const AssetDetail: React.FC<AssetDetailProps> = ({
           </div>
         )}
         <div className="detail-actions-row">
-          {onDelete && (
-            <div
-              className="detail-delete-btn"
-              role="button"
-              tabIndex={0}
-              onClick={onDelete}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") onDelete();
-              }}
-              title="Delete entry"
-            >
-              {"\u2716"}
-            </div>
-          )}
           <div
             className="detail-btn detail-btn--secondary"
             role="button"
