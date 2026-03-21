@@ -1,7 +1,7 @@
 /** Plugin identity */
 export const PLUGIN_ID = "com.kaltura.premiere.panel";
 export const PLUGIN_NAME = "Kaltura for Adobe Creative Cloud";
-export const PLUGIN_VERSION = "1.17.6";
+export const PLUGIN_VERSION = "1.17.7";
 export const CLIENT_TAG = `kaltura-premiere-panel:v${PLUGIN_VERSION}`;
 
 /** Default Kaltura service URL */

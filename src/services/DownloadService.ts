@@ -70,9 +70,41 @@ export class DownloadService {
     entryName: string,
     onProgress?: (progress: DownloadProgress) => void,
   ): Promise<AssetMapping> {
-    // Extract file extension from entry name, fallback to "jpg"
+    // Extract file extension from entry name, validate it's a known media format
+    const KNOWN_EXTENSIONS = new Set([
+      "jpg",
+      "jpeg",
+      "png",
+      "gif",
+      "bmp",
+      "tiff",
+      "tif",
+      "webp",
+      "svg",
+      "psd",
+      "mp4",
+      "mov",
+      "avi",
+      "mkv",
+      "wmv",
+      "flv",
+      "webm",
+      "mxf",
+      "mpg",
+      "mpeg",
+      "mp3",
+      "wav",
+      "aac",
+      "flac",
+      "ogg",
+      "wma",
+      "aiff",
+      "aif",
+      "m4a",
+    ]);
     const dotIdx = entryName.lastIndexOf(".");
-    const fileExt = dotIdx > 0 ? entryName.slice(dotIdx + 1).toLowerCase() : "jpg";
+    const rawExt = dotIdx > 0 ? entryName.slice(dotIdx + 1).toLowerCase() : "";
+    const fileExt = KNOWN_EXTENSIONS.has(rawExt) ? rawExt : "jpg";
     const fileName = `${entryId}_source.${fileExt}`;
     const request: DownloadRequest = { entryId, flavorId: "source", fileName };
 

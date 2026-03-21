@@ -2,7 +2,7 @@
   "manifestVersion": 5,
   "id": "163a7b84",
   "name": "Kaltura for Adobe Creative Cloud",
-  "version": "1.17.6",
+  "version": "1.17.7",
   "main": "index.html",
   "host": {
     "app": "premierepro",
