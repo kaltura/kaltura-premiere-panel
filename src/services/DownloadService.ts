@@ -36,14 +36,11 @@ const MIME_TO_EXT: Record<string, string> = {
   "application/pdf": "pdf",
 };
 
-/** Detect the correct file extension from Content-Type or magic bytes */
+/** Detect the correct file extension from magic bytes, falling back to Content-Type.
+ *  Magic bytes take priority because CDN Content-Type headers can be wrong
+ *  (e.g. returning image/jpeg for a PNG file). */
 function detectFileExtension(contentType: string | null, data: Uint8Array): string | null {
-  // Try Content-Type header first
-  if (contentType) {
-    const mime = contentType.split(";")[0].trim().toLowerCase();
-    if (MIME_TO_EXT[mime]) return MIME_TO_EXT[mime];
-  }
-  // Fall back to magic bytes
+  // Check magic bytes first — they are ground truth
   if (data.length >= 4) {
     // PNG: 89 50 4E 47
     if (data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e && data[3] === 0x47) return "png";
@@ -66,6 +63,11 @@ function detectFileExtension(contentType: string | null, data: Uint8Array): stri
       data[11] === 0x50
     )
       return "webp";
+  }
+  // Fall back to Content-Type header
+  if (contentType) {
+    const mime = contentType.split(";")[0].trim().toLowerCase();
+    if (MIME_TO_EXT[mime]) return MIME_TO_EXT[mime];
   }
   return null;
 }
