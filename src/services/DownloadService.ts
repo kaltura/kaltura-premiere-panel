@@ -70,44 +70,6 @@ function detectFileExtension(contentType: string | null, data: Uint8Array): stri
   return null;
 }
 
-/**
- * Download binary data, working around UXP's "Already read" fetch bug.
- *
- * UXP's fetch consumes the response body during redirect following, so
- * response.arrayBuffer() throws "Already read" on redirected responses.
- *
- * Strategy: first resolve redirects via a HEAD request (no body to consume),
- * then GET the final URL directly (no redirect → body is fresh).
- */
-async function fetchBinary(
-  url: string,
-  signal?: AbortSignal,
-): Promise<{ data: Uint8Array; contentType: string; status: number; statusText: string }> {
-  // Step 1: HEAD request to follow redirects and discover the final URL
-  const headResp = await fetch(url, { method: "HEAD", redirect: "follow", signal });
-  const finalUrl = headResp.url || url;
-  log.info("Resolved download URL", {
-    original: url.substring(0, 120),
-    final: finalUrl.substring(0, 120),
-    redirected: finalUrl !== url,
-  });
-
-  // Step 2: GET the final URL (should not redirect, so body is not pre-consumed)
-  const response = await fetch(finalUrl, { signal });
-
-  if (!response.ok) {
-    throw new NetworkError(`Download failed: HTTP ${response.status} ${response.statusText}`);
-  }
-
-  const buf = await response.arrayBuffer();
-  return {
-    data: new Uint8Array(buf),
-    contentType: response.headers.get("content-type") || "",
-    status: response.status,
-    statusText: response.statusText,
-  };
-}
-
 export interface DownloadProgress {
   entryId: string;
   loaded: number;
@@ -120,7 +82,6 @@ export interface DownloadRequest {
   entryId: string;
   flavorId: string;
   fileName: string;
-  downloadUrl?: string;
 }
 
 interface ActiveDownload {
@@ -157,13 +118,12 @@ export class DownloadService {
   /**
    * Download and import an entry directly (no flavor required).
    * Used for image and document entries that have no flavor assets.
-   * Prefers the entry's own downloadUrl; falls back to raw CDN URL.
+   * Uses raw CDN URL (no redirects, avoids UXP "Already read" bug).
    */
   async downloadAndImportEntry(
     entryId: string,
     entryName: string,
     onProgress?: (progress: DownloadProgress) => void,
-    entryDownloadUrl?: string,
   ): Promise<AssetMapping> {
     // Extract file extension from entry name, validate it's a known media format
     const KNOWN_EXTENSIONS = new Set([
@@ -205,7 +165,6 @@ export class DownloadService {
       entryId,
       flavorId: "source",
       fileName,
-      downloadUrl: entryDownloadUrl,
     };
 
     if (onProgress) {
@@ -317,19 +276,22 @@ export class DownloadService {
     try {
       log.info("Starting direct entry download", { entryId: request.entryId });
 
-      // Prefer entry's own downloadUrl from API; fall back to constructed raw CDN URL
-      const downloadUrl = request.downloadUrl
-        ? `${request.downloadUrl}${request.downloadUrl.includes("?") ? "&" : "?"}ks=${encodeURIComponent(this.client.getKs() || "")}`
-        : this.mediaService.getEntryDownloadUrl(request.entryId, request.fileName);
-      log.info("Entry download URL", {
-        url: downloadUrl.substring(0, 150),
-        source: request.downloadUrl ? "api" : "cdn",
+      // Always use raw CDN URL — the Kaltura API downloadUrl redirects, and
+      // UXP's fetch throws "Already read" on response.arrayBuffer() after redirects
+      const downloadUrl = this.mediaService.getEntryDownloadUrl(request.entryId, request.fileName);
+      log.info("Entry download URL", { url: downloadUrl.substring(0, 150) });
+
+      const response = await fetch(downloadUrl, {
+        signal: controller.signal,
       });
 
-      // Use HEAD+GET to avoid UXP "Already read" bug on redirected fetch responses
-      const result = await fetchBinary(downloadUrl, controller.signal);
-      const downloadedData = result.data;
-      const contentType = result.contentType;
+      if (!response.ok) {
+        throw new NetworkError(`Download failed: HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const buf = await response.arrayBuffer();
+      const downloadedData = new Uint8Array(buf);
+      const contentType = response.headers.get("content-type") || "";
       log.info("Downloaded entry data", {
         byteLength: downloadedData.byteLength,
         contentType,
@@ -411,9 +373,16 @@ export class DownloadService {
       );
       log.info("Download URL", { url: downloadUrl.substring(0, 150) });
 
-      // Use HEAD+GET to avoid UXP "Already read" bug on redirected fetch responses
-      const result = await fetchBinary(downloadUrl, controller.signal);
-      const downloadedData = result.data;
+      const response = await fetch(downloadUrl, {
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new NetworkError(`Download failed: HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const buf = await response.arrayBuffer();
+      const downloadedData = new Uint8Array(buf);
 
       log.info("Downloaded data", {
         byteLength: downloadedData.byteLength,
@@ -424,8 +393,8 @@ export class DownloadService {
       if (downloadedData.byteLength === 0) {
         throw new NetworkError(
           `Download returned 0 bytes.\n` +
-            `Status: ${result.status}\n` +
-            `Content-Type: ${result.contentType}\n` +
+            `Status: ${response.status}\n` +
+            `Content-Type: ${response.headers.get("content-type")}\n` +
             `Original URL: ${downloadUrl.substring(0, 150)}`,
         );
       }

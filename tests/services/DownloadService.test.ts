@@ -13,29 +13,21 @@ function createMockHostService() {
   };
 }
 
-/** Mock a HEAD response (redirect resolved, no body) followed by a GET response (binary data) */
-function mockFetchBinary(data: Uint8Array, contentType = "video/mp4") {
-  // HEAD response — resolves redirects, returns final URL
-  mockFetch.mockResolvedValueOnce({
-    ok: true,
-    status: 200,
-    url: "https://cdn.kaltura.com/final-url",
-    headers: { get: () => null },
-  });
-  // GET response — returns actual binary data
-  mockFetch.mockResolvedValueOnce({
+function mockFetchResponse(data: Uint8Array, contentType = "video/mp4") {
+  return {
     ok: true,
     status: 200,
     statusText: "OK",
     headers: {
       get: (name: string) => {
+        if (name === "content-length") return String(data.byteLength);
         if (name === "content-type") return contentType;
         return null;
       },
     },
     arrayBuffer: () =>
       Promise.resolve(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)),
-  });
+  };
 }
 
 describe("DownloadService", () => {
@@ -82,8 +74,8 @@ describe("DownloadService", () => {
       ok: true,
       json: async () => "https://cdn.kaltura.com/download/test.mp4",
     });
-    // fetchBinary: HEAD + GET
-    mockFetchBinary(new Uint8Array([1, 2, 3]));
+    // Second fetch: actual file download
+    mockFetch.mockResolvedValueOnce(mockFetchResponse(new Uint8Array([1, 2, 3])));
 
     const result = await service.downloadAndImport("0_existing", existingFlavor);
 
@@ -97,8 +89,8 @@ describe("DownloadService", () => {
       ok: true,
       json: async () => "https://cdn.kaltura.com/download/test.mp4",
     });
-    // fetchBinary: HEAD + GET
-    mockFetchBinary(new Uint8Array([1, 2, 3, 4]));
+    // Second fetch: actual file download
+    mockFetch.mockResolvedValueOnce(mockFetchResponse(new Uint8Array([1, 2, 3, 4])));
 
     const progressCalls: number[] = [];
     const result = await service.downloadAndImport("0_abc", mockFlavor, (p) => {
@@ -117,8 +109,8 @@ describe("DownloadService", () => {
       ok: true,
       json: async () => "https://cdn.kaltura.com/download/test.mp4",
     });
-    // fetchBinary: HEAD + GET
-    mockFetchBinary(new Uint8Array([1, 2]));
+    // Second fetch: actual file download
+    mockFetch.mockResolvedValueOnce(mockFetchResponse(new Uint8Array([1, 2])));
 
     const result = await service.downloadAndImport("0_abc", mockFlavor);
 
@@ -126,9 +118,10 @@ describe("DownloadService", () => {
   });
 
   describe("downloadAndImportEntry()", () => {
-    it("downloads an image entry directly without flavors", async () => {
-      // fetchBinary: HEAD + GET with JPEG content
-      mockFetchBinary(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), "image/jpeg");
+    it("downloads an image entry directly using raw CDN URL", async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockFetchResponse(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), "image/jpeg"),
+      );
 
       const result = await service.downloadAndImportEntry("0_img", "photo.jpg");
 
@@ -137,11 +130,15 @@ describe("DownloadService", () => {
       expect(result.localPath).toContain("0_img_source.jpg");
       expect(hostService.importFile).toHaveBeenCalled();
       expect(hostService.storeMapping).toHaveBeenCalledWith("0_img", expect.any(String));
+      // Verify the fetch URL uses raw CDN path (no API call, no redirects)
+      const fetchUrl = mockFetch.mock.calls[0][0];
+      expect(fetchUrl).toContain("/raw/entry_id/0_img/direct_serve/1");
     });
 
     it("corrects extension based on Content-Type header", async () => {
-      // File named .PNG but actual content is PNG
-      mockFetchBinary(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), "image/png");
+      mockFetch.mockResolvedValueOnce(
+        mockFetchResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), "image/png"),
+      );
 
       const result = await service.downloadAndImportEntry("0_png", "screenshot.PNG");
 
@@ -149,8 +146,9 @@ describe("DownloadService", () => {
     });
 
     it("detects format from magic bytes when Content-Type is generic", async () => {
-      // PNG magic bytes but octet-stream content type
-      mockFetchBinary(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), "application/octet-stream");
+      mockFetch.mockResolvedValueOnce(
+        mockFetchResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), "application/octet-stream"),
+      );
 
       const result = await service.downloadAndImportEntry("0_noext", "ImageWithoutExt");
 
@@ -158,7 +156,7 @@ describe("DownloadService", () => {
     });
 
     it("throws on empty download", async () => {
-      mockFetchBinary(new Uint8Array([]), "video/mp4");
+      mockFetch.mockResolvedValueOnce(mockFetchResponse(new Uint8Array([])));
 
       await expect(service.downloadAndImportEntry("0_empty", "empty.jpg")).rejects.toThrow(
         "0 bytes",
