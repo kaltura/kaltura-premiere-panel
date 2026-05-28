@@ -1,6 +1,6 @@
 {
   "name": "kaltura-premiere-panel",
-  "version": "1.19.0",
+  "version": "1.19.1",
   "description": "Kaltura for Adobe Creative Cloud — Native UXP panel for enterprise video workflow",
   "private": true,
   "license": "AGPL-3.0-only",

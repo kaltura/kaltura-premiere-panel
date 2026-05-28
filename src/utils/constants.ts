@@ -1,7 +1,7 @@
 /** Plugin identity */
 export const PLUGIN_ID = "com.kaltura.premiere.panel";
 export const PLUGIN_NAME = "Kaltura";
-export const PLUGIN_VERSION = "1.19.0";
+export const PLUGIN_VERSION = "1.19.1";
 export const CLIENT_TAG = `kaltura-premiere-panel:v${PLUGIN_VERSION}`;
 
 /** Default Kaltura service URL */

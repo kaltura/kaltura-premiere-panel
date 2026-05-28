@@ -2,7 +2,7 @@
   "manifestVersion": 5,
   "id": "163a7b84",
   "name": "Kaltura",
-  "version": "1.19.0",
+  "version": "1.19.1",
   "main": "index.html",
   "host": {
     "app": "premierepro",
