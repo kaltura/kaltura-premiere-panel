@@ -1,11 +1,32 @@
 /** Plugin identity */
 export const PLUGIN_ID = "com.kaltura.premiere.panel";
 export const PLUGIN_NAME = "Kaltura";
-export const PLUGIN_VERSION = "1.19.1";
+export const PLUGIN_VERSION = "1.20.0";
 export const CLIENT_TAG = `kaltura-premiere-panel:v${PLUGIN_VERSION}`;
 
 /** Default Kaltura service URL */
 export const DEFAULT_SERVICE_URL = "https://www.kaltura.com";
+
+/**
+ * Kaltura multi-tenant SaaS regions and their API base URLs.
+ * Source: https://kaltura.md/KALTURA_API_GETTING_STARTED/ (section 4.1).
+ * Accounts on private cloud or on-premises deployments use a
+ * customer-specific URL that follows none of these patterns — the
+ * "custom" option in the Login panel covers that case.
+ */
+export interface KalturaRegion {
+  code: string;
+  serviceUrl: string;
+}
+
+export const KALTURA_REGIONS: KalturaRegion[] = [
+  { code: "nvp1", serviceUrl: "https://www.kaltura.com" },
+  { code: "frp2", serviceUrl: "https://api.de.kaltura.com" },
+  { code: "irp2", serviceUrl: "https://api.eu.kaltura.com" },
+  { code: "sgp2", serviceUrl: "https://api.sg.kaltura.com" },
+  { code: "cap2", serviceUrl: "https://api.ca.kaltura.com" },
+  { code: "syp2", serviceUrl: "https://api.ap.kaltura.com" },
+];
 
 /** API paths */
 export const API_BASE_PATH = "/api_v3/service";

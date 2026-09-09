@@ -105,14 +105,28 @@ Alternatively, push a version tag (e.g., `git tag v1.18.1 && git push --tags`) t
 
 Configure corporate firewalls and proxy servers to allow access to:
 
-| Domain             | Purpose                               |
-| ------------------ | ------------------------------------- |
-| `*.kaltura.com`    | Kaltura REST API and thumbnail CDN    |
-| `*.kaltura.cloud`  | Kaltura cloud instance endpoints      |
-| `*.akamaihd.net`   | Akamai CDN (video/asset delivery)     |
-| `*.cloudfront.net` | CloudFront CDN (video/asset delivery) |
+| Domain             | Purpose                                                             |
+| ------------------ | ------------------------------------------------------------------- |
+| `*.kaltura.com`    | Kaltura REST API and thumbnail CDN (all 6 SaaS regions — see below) |
+| `*.akamaihd.net`   | Akamai CDN (video/asset delivery)                                   |
+| `*.cloudfront.net` | CloudFront CDN (video/asset delivery)                               |
 
-These domains are declared in the plugin's `manifest.json` under `requiredPermissions.network.domains`.
+Kaltura's multi-tenant SaaS runs in 6 regions, all reachable under `*.kaltura.com`:
+
+| Region                  | Server URL                   |
+| ----------------------- | ---------------------------- |
+| United States (default) | `https://www.kaltura.com`    |
+| Germany                 | `https://api.de.kaltura.com` |
+| Ireland / EU            | `https://api.eu.kaltura.com` |
+| Singapore               | `https://api.sg.kaltura.com` |
+| Canada                  | `https://api.ca.kaltura.com` |
+| Australia               | `https://api.ap.kaltura.com` |
+
+Accounts on a **private cloud or on-premises** deployment use an account-specific URL that doesn't match any of the patterns above — get it from your Kaltura account manager or system administrator, and enter it as the "Custom" server option on the Login panel.
+
+Because the private cloud/on-prem case has no predictable domain, the plugin's `manifest.json` declares `requiredPermissions.network.domains: "all"` rather than a fixed list — UXP's manifest permissions are static (set at install time, no runtime prompt), so a fixed list would break for any account not on the 6 known SaaS regions. In practice the plugin only ever contacts the single server URL configured on the Login panel; firewall rules only need to allow that one domain, not "all" domains.
+
+The manifest also declares `wss://` access for a real-time notification feature that exists in the codebase but isn't wired into any panel yet — it carries no traffic today and needs no firewall allowance.
 
 ## Plugin Configuration
 

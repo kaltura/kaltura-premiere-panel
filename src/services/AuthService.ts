@@ -83,6 +83,8 @@ export interface AuthSession {
   user: KalturaUser;
   expiry: number;
   partnerId: number;
+  /** Server URL this session was authenticated against — restored on relaunch */
+  serverUrl: string;
   /** How this session was created — affects whether auto-refresh is possible */
   authMethod?: "credentials" | "appToken" | "sso";
 }
@@ -139,6 +141,7 @@ export class AuthService {
         user,
         expiry: Date.now() / 1000 + 86400,
         partnerId: credentials.partnerId,
+        serverUrl: this.client.getServiceUrl(),
         authMethod: "credentials",
       };
 
@@ -201,6 +204,7 @@ export class AuthService {
       user,
       expiry: Date.now() / 1000 + 86400,
       partnerId: this.client.getPartnerId(),
+      serverUrl: this.client.getServiceUrl(),
       authMethod: "appToken",
     };
 
@@ -262,6 +266,7 @@ export class AuthService {
         user,
         expiry,
         partnerId: user.partnerId ?? ksFields.partnerId,
+        serverUrl,
         authMethod: "sso",
       };
       await this.setSession(session);
@@ -336,9 +341,13 @@ export class AuthService {
 
       this.client.setKs(storedKs);
 
-      // Restore partnerId on the client so API calls use the correct partner
+      // Restore partnerId and serverUrl on the client so API calls target the
+      // same server this session was authenticated against
       if (userInfo.partnerId) {
         this.client.configure({ partnerId: userInfo.partnerId });
+      }
+      if (userInfo.serverUrl) {
+        this.client.configure({ serviceUrl: userInfo.serverUrl });
       }
 
       // Validate the session is still active
@@ -349,6 +358,7 @@ export class AuthService {
           user,
           expiry: userInfo.expiry,
           partnerId: userInfo.partnerId,
+          serverUrl: userInfo.serverUrl ?? this.client.getServiceUrl(),
         };
         this.session = session;
         this.scheduleRefresh();

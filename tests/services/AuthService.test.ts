@@ -158,6 +158,56 @@ describe("AuthService", () => {
       const result = await service.restoreSession();
       expect(result).toBeNull();
     });
+
+    it("restores the session's serverUrl onto the client, not just partnerId/KS", async () => {
+      // Simulate a session that was authenticated against a non-default region,
+      // then persisted to SecureStorage (as setSession() does on login).
+      const storedSession = {
+        ks: "stored_ks_de_region",
+        partnerId: 5837132,
+        expiry: Date.now() / 1000 + 3600,
+        serverUrl: "https://api.de.kaltura.com",
+        authMethod: "credentials",
+      };
+      const uxp = require("uxp");
+      uxp.storage.secureStorage.getItem.mockImplementation((key: string) => {
+        if (key.includes("ks")) return Promise.resolve(storedSession.ks);
+        return Promise.resolve(JSON.stringify(storedSession));
+      });
+
+      // A fresh client, as constructed at app relaunch — defaults to the US region.
+      const relaunchClient = new KalturaClient({
+        serviceUrl: "https://www.kaltura.com",
+        partnerId: 5837132,
+      });
+      const relaunchService = new AuthService(relaunchClient);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          objectType: "KalturaUser",
+          id: "admin",
+          email: "admin@company.com",
+          firstName: "Admin",
+          lastName: "User",
+          fullName: "Admin User",
+          partnerId: 5837132,
+          isAdmin: true,
+        }),
+      });
+
+      const restored = await relaunchService.restoreSession();
+
+      expect(restored).not.toBeNull();
+      expect(restored?.serverUrl).toBe("https://api.de.kaltura.com");
+      expect(relaunchClient.getServiceUrl()).toBe("https://api.de.kaltura.com");
+      // The validating user.get call must have gone to the restored region, not the default.
+      const requestedUrl = mockFetch.mock.calls[0][0] as string;
+      expect(requestedUrl).toContain("api.de.kaltura.com");
+
+      uxp.storage.secureStorage.getItem.mockReset();
+      uxp.storage.secureStorage.getItem.mockResolvedValue(null);
+    });
   });
 
   describe("initiateSso()", () => {

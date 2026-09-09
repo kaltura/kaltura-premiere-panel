@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { KalturaLoginCredentials } from "../types";
 import { ErrorBanner, LoadingSpinner } from "../components";
-import { DEFAULT_SERVICE_URL, PLUGIN_NAME } from "../utils/constants";
+import { DEFAULT_SERVICE_URL, KALTURA_REGIONS, PLUGIN_NAME } from "../utils/constants";
 import { useTranslation } from "../i18n";
 
 interface LoginPanelProps {
@@ -32,6 +32,9 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({
   const [password, setPassword] = useState("");
   const [partnerId, setPartnerId] = useState("");
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVICE_URL);
+  const [region, setRegion] = useState<string>(
+    () => KALTURA_REGIONS.find((r) => r.serviceUrl === DEFAULT_SERVICE_URL)?.code ?? "custom",
+  );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [authMode, setAuthMode] = useState<"email" | "sso">("email");
   const [ssoToken, setSsoToken] = useState("");
@@ -43,6 +46,15 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({
       onServerUrlChange?.(url);
     },
     [onServerUrlChange],
+  );
+
+  const handleRegionChange = useCallback(
+    (code: string) => {
+      setRegion(code);
+      const found = KALTURA_REGIONS.find((r) => r.code === code);
+      if (found) handleServerUrlChange(found.serviceUrl);
+    },
+    [handleServerUrlChange],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -270,13 +282,31 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({
         )}
 
         {showAdvanced && authMode === "email" && (
-          <sp-textfield
-            placeholder={t("login.serverUrlPlaceholder")}
-            aria-label={t("login.serverUrlAriaLabel")}
-            value={serverUrl}
-            onInput={(e: Event) => handleServerUrlChange((e.target as HTMLInputElement).value)}
-            style={{ width: "100%" }}
-          />
+          <>
+            <select
+              className="native-select"
+              aria-label={t("login.regionAriaLabel")}
+              value={region}
+              onChange={(e) => handleRegionChange(e.target.value)}
+              style={{ width: "100%" }}
+            >
+              {KALTURA_REGIONS.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {t(`login.region.${r.code}`)}
+                </option>
+              ))}
+              <option value="custom">{t("login.region.custom")}</option>
+            </select>
+            {region === "custom" && (
+              <sp-textfield
+                placeholder={t("login.serverUrlPlaceholder")}
+                aria-label={t("login.serverUrlAriaLabel")}
+                value={serverUrl}
+                onInput={(e: Event) => handleServerUrlChange((e.target as HTMLInputElement).value)}
+                style={{ width: "100%" }}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
