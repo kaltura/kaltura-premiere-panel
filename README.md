@@ -215,7 +215,7 @@ Enterprise admins can pre-configure the plugin with a JSON config file — see t
 
 ## Testing
 
-**488 tests** across **40 suites** — all passing.
+**495 tests** across **40 suites** — all passing.
 
 ```bash
 npm test                  # Run all tests
@@ -255,10 +255,11 @@ See the [Enterprise Deployment Guide](./docs/enterprise-deployment.md) for Admin
 
 The plugin requires access to these domains (configure in corporate firewalls):
 
-| Domain            | Purpose                  |
-| ----------------- | ------------------------ |
-| `*.kaltura.com`   | Kaltura REST API and CDN |
-| `*.kaltura.cloud` | Kaltura cloud endpoints  |
+| Domain          | Purpose                                              |
+| --------------- | ---------------------------------------------------- |
+| `*.kaltura.com` | Kaltura REST API and CDN — covers all 6 SaaS regions |
+
+Private cloud/on-premises accounts use a customer-specific URL outside this pattern; the plugin's manifest permission is declared broadly (`"all"`) to support that case without limiting the plugin to only talking to whichever server URL you actually configure. See the [Architecture doc](./docs/architecture.md#component-overview) for the full breakdown, including region URLs and a dormant WebSocket permission that carries no traffic today.
 
 ## CI/CD
 
