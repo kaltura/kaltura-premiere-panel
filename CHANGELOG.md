@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.20.0
+
+### Features
+
+- **Kaltura Service URL region picker** — Login panel now offers a dropdown of Kaltura's 6 SaaS regions (US, Germany, Ireland/EU, Singapore, Canada, Australia) plus a "Custom" field for private cloud/on-premises accounts, instead of a single free-text server URL field.
+
+### Bug Fixes
+
+- **Removed a non-existent `*.kaltura.cloud` domain** from the manifest — leftover from an early spec that meant it metaphorically ("any Kaltura URL"), not as a real host. `requiredPermissions.network.domains` is now `"all"`, since UXP manifest permissions are static (install-time only) and Kaltura accounts can be on any SaaS region or an unpatterned private-cloud/on-prem URL.
+- **Server URL now persists across relaunch** — `AuthService.restoreSession()` previously restored the KS and partner ID but not the server URL, so a user on a non-default region or custom domain would silently reconnect to the default US host on every relaunch and get bounced back to the login screen. The server URL is now stored and restored with the session.
+- Removed the unused `webview` manifest permission.
+
+### Documentation
+
+- Rewrote `docs/architecture.md` to be generic for any organization — refers to "the Kaltura Service URL" rather than literal hostnames in prose and diagrams.
+- Full i18n coverage for the new region picker strings across all 20 locales.
+
+### Tests
+
+- 495 tests across 40 suites — all passing
+
+## 1.19.1
+
+### Bug Fixes
+
+- **Fixed SSO session refresh and expiry handling** — SSO sessions now correctly skip auto-refresh (the plugin holds no admin credential to mint a new SSO session) and parse the real expiry directly from the KS token instead of assuming a fixed TTL.
+
+### Documentation
+
+- Added an SSO setup guide for customer accounts; corrected the SSO token TTL description to note it's configurable per customer.
+
+## 1.19.0
+
+### Features
+
+- **Replaced the broken SSO flow with the Auth Broker SPA Proxy flow** — SSO now collects email and an optional organization ID upfront and extracts the partner ID directly from the returned KS, simplifying the previous two-phase flow.
+
+### Fixes
+
+- Moved Partner ID entry to SSO Phase 1 and simplified Phase 2.
+- Added `.nojekyll` to prevent GitHub Pages/Jekyll from parsing the SSO callback page.
+
 ## 1.18.2
 
 ### Bug Fixes
